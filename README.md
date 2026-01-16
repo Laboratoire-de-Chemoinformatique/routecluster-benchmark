@@ -92,37 +92,39 @@ git clone https://github.com/Laboratoire-de-Chemoinformatique/routecluster-bench
 cd routecluster-benchmark
 ```
 
-## 2) Create conda environments (minimal)
+## 2) Create uv environments
 
-You will typically want **two environments** because the **AiZynthFinder TED notebook requires a different AiZynthFinder version** than the Atom–Bond workflow.
+You will typically want **two environments** because the **AiZynthFinder TED notebook requires a different AiZynthFinder version** than the Atom–Bond workflow. The repository includes a `pyproject.toml` and a `Makefile` with `uv` targets for each environment.
 
-### ✅ Main environment (SBP + Atom–Bond + ASKCOS)
+### ✅ Install uv (one-time)
 
 ```bash
-conda create -n routecluster-main python=3.9 -y
-conda activate routecluster-main
+pip install uv
+```
 
-conda install -c conda-forge rdkit jupyter numpy pandas scikit-learn matplotlib -y
+### ✅ Main environment (SBP + ASKCOS + common deps)
 
-# Tool-specific installs (example placeholders)
-# pip install aizynthfinder==<AB-compatible-version>
-# pip install torch tensorflow   # only if needed by ASKCOS pipeline in your setup
+```bash
+make uv-main
+source .venv/bin/activate
+```
+
+### ✅ Atom–Bond environment (AiZynthFinder AB)
+
+```bash
+make uv-ab
+source .venv-ab/bin/activate
 ```
 
 ### ⚠️ TED environment (AiZynthFinder TED)
 
 ```bash
-conda create -n routecluster-ted python=3.9 -y
-conda activate routecluster-ted
-
-conda install -c conda-forge rdkit jupyter numpy pandas scikit-learn matplotlib -y
-
-# IMPORTANT: AiZynthFinder version differs here!
-# pip install aizynthfinder==<TED-compatible-version>
+make uv-ted
+source .venv-ted/bin/activate
 ```
 
 > **Important note:**
-> `aizynth_cluster_ted.ipynb` **must be run in its own conda environment** because the AiZynthFinder version required for the **TED method** differs from the one used for the **Atom–Bond method**.
+> `aizynth_cluster_ted.ipynb` **must be run in its own environment** because the AiZynthFinder version required for the **TED method** differs from the one used for the **Atom–Bond method**.
 
 ---
 
@@ -130,30 +132,60 @@ conda install -c conda-forge rdkit jupyter numpy pandas scikit-learn matplotlib 
 
 ### Step 0 — Prepare routes / inputs
 
-Run in **routecluster-main**:
+Run in the **main uv env**:
 
 ```bash
-conda activate routecluster-main
+source .venv/bin/activate
 jupyter notebook setup.ipynb
 ```
 
 ### Step 1 — Run each clustering method
 
-Run in **routecluster-main**:
+#### ASKCOS (Tree-LSTM)
 
-* `askcos_cluster_lstm.ipynb`
-* `aizynth_cluster_ab.ipynb`
+Run in the **main uv env**:
 
-Run in **routecluster-ted**:
+```bash
+source .venv/bin/activate
+jupyter notebook askcos_cluster_lstm.ipynb
+```
 
-* `aizynth_cluster_ted.ipynb`
+Notes:
+* Expects ASKCOS route JSON files downloaded from the web interface (see notebook header).
+* Writes cluster output to `inter_comp_data/askcos_clusters.pkl`.
+
+#### AiZynthFinder (Atom–Bond / AB)
+
+Run in the **AB uv env**:
+
+```bash
+source .venv-ab/bin/activate
+jupyter notebook aizynth_cluster_ab.ipynb
+```
+
+Notes:
+* Uses AiZynthFinder **AB-compatible** version.
+* Writes cluster output to `inter_comp_data/aizynth_clusters.pkl`.
+
+#### AiZynthFinder (TED)
+
+Run in the **TED uv env**:
+
+```bash
+source .venv-ted/bin/activate
+jupyter notebook aizynth_cluster_ted.ipynb
+```
+
+Notes:
+* Uses AiZynthFinder **TED-compatible** version.
+* Writes cluster output to `inter_comp_data/aizynth_sb_clusters_ted.pkl`.
 
 ### Step 2 — Compare outputs across methods
 
-Back to **routecluster-main**:
+Back to the **main uv env**:
 
 ```bash
-conda activate routecluster-main
+source .venv/bin/activate
 jupyter notebook inter_comparison.ipynb
 ```
 
