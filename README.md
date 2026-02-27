@@ -59,16 +59,17 @@ Goal: avoid all-to-all combinatorial explosion while preserving chemically meani
 
 ## Repository map
 
-- `setup.ipynb`: data preparation and route-format normalization
-- `askcos_cluster_lstm.ipynb`: ASKCOS Tree-LSTM clustering
-- `aizynth_cluster_ab.ipynb`: AiZynthFinder AB clustering
-- `aizynth_cluster_ted.ipynb`: AiZynthFinder TED clustering
-- `inter_comparison.ipynb`: cross-method benchmarking and agreement analysis
-- `multitarget_planning.ipynb`: cross-target selection workflow (SB-CGR -> RouteCGR)
-- `analysis.ipynb`: inspection and analysis of cross-target ranked outputs
+- `notebooks/benchmark/setup.ipynb`: data preparation and route-format normalization
+- `notebooks/benchmark/askcos_cluster_lstm.ipynb`: ASKCOS Tree-LSTM clustering
+- `notebooks/benchmark/aizynth_cluster_ab.ipynb`: AiZynthFinder AB clustering
+- `notebooks/benchmark/aizynth_cluster_ted.ipynb`: AiZynthFinder TED clustering
+- `notebooks/benchmark/inter_comparison.ipynb`: cross-method benchmarking and agreement analysis
+- `notebooks/multitarget/multitarget_planning.ipynb`: cross-target selection workflow (SB-CGR -> RouteCGR)
+- `notebooks/multitarget/analysis.ipynb`: inspection and analysis of cross-target ranked outputs
 - `cgr_clustering/`: SB-CGR/SBP benchmark implementation
 - `multitarget/`: cross-target search and planning utilities
 - `config.yml`: planning/search configuration
+- `old/`: local-only legacy backups (gitignored)
 
 ---
 
@@ -105,29 +106,29 @@ In `.venv`:
 
 ```bash
 source .venv/bin/activate
-jupyter notebook setup.ipynb
-jupyter notebook askcos_cluster_lstm.ipynb
+jupyter notebook notebooks/benchmark/setup.ipynb
+jupyter notebook notebooks/benchmark/askcos_cluster_lstm.ipynb
 ```
 
 In `.venv-ab`:
 
 ```bash
 source .venv-ab/bin/activate
-jupyter notebook aizynth_cluster_ab.ipynb
+jupyter notebook notebooks/benchmark/aizynth_cluster_ab.ipynb
 ```
 
 In `.venv-ted`:
 
 ```bash
 source .venv-ted/bin/activate
-jupyter notebook aizynth_cluster_ted.ipynb
+jupyter notebook notebooks/benchmark/aizynth_cluster_ted.ipynb
 ```
 
 Back in `.venv`:
 
 ```bash
 source .venv/bin/activate
-jupyter notebook inter_comparison.ipynb
+jupyter notebook notebooks/benchmark/inter_comparison.ipynb
 ```
 
 Expected benchmark outputs are stored in `inter_comp_data/` as method-level cluster assignments and comparison artifacts.
@@ -140,8 +141,8 @@ In `.venv`:
 
 ```bash
 source .venv/bin/activate
-jupyter notebook multitarget_planning.ipynb
-jupyter notebook analysis.ipynb
+jupyter notebook notebooks/multitarget/multitarget_planning.ipynb
+jupyter notebook notebooks/multitarget/analysis.ipynb
 ```
 
 The multi-target module (`multitarget/`) applies beam-search filtering at both levels:

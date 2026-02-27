@@ -8,6 +8,7 @@ from collections import defaultdict
 from itertools import combinations
 from typing import Any, Dict, List, Mapping
 
+
 def collect_overlaps(syn, ask, aiz):
     # Compute overlaps
     only_syn = syn - ask - aiz
@@ -45,6 +46,7 @@ def build_sb_to_keys(clusters: Mapping[Any, Mapping[str, Any]], field: str = "sb
         sb_to_keys[str(cluster[field])].append(k)
     return dict(sb_to_keys)
 
+
 def merge_keys_for_sbs(examples, keys_for_sb):
     merged = {"synplanner_keys": [], "askcos_keys": [], "aizynth_keys": []}
 
@@ -55,6 +57,7 @@ def merge_keys_for_sbs(examples, keys_for_sb):
         merged["aizynth_keys"].extend(d.get("aizynth_keys", []))
 
     return merged
+
 
 def make_keys_for_sb(
     synplanner_clusters: Mapping[Any, Mapping[str, Any]],
@@ -105,6 +108,7 @@ def tanimoto(a, b):
     union = np.sum(np.logical_or(a, b))
     return intersection / union if union > 0 else 0.0
 
+
 def diff_score_sb_cgr(cgr_1, cgr_2):
 
     # sb_cgr_1.clean2d()
@@ -131,6 +135,7 @@ def diff_score_sb_cgr(cgr_1, cgr_2):
     sim12 = tanimoto(sb_cgr_fp_1, sb_cgr_fp_2)
     return sim12
 
+
 # ---------- similarity ----------
 def tanimoto_sim(a, b) -> float:
     a = np.asarray(a, dtype=bool)
@@ -138,6 +143,7 @@ def tanimoto_sim(a, b) -> float:
     inter = np.count_nonzero(a & b)
     union = np.count_nonzero(a | b)
     return (inter / union) if union else 0.0
+
 
 def cgr_to_morgan_fp(cgr, max_radius=2, length=4096) -> np.ndarray:
     # decompose() -> (reactants, products)
@@ -152,13 +158,14 @@ def cgr_to_morgan_fp(cgr, max_radius=2, length=4096) -> np.ndarray:
     fp = cgr_chy.morgan_fingerprint(max_radius=max_radius, length=length)
     return np.asarray(fp, dtype=bool)
 
-def distance_matrix(sb_cgrs_dict):
-    ids = list(range(len(sb_cgrs_dict)))
+
+def distance_matrix(cgrs_dict, radius=2, length=4096) -> pd.DataFrame:
+    ids = list(range(len(cgrs_dict)))
 
     # 1) Precompute fingerprints once (much faster than recomputing per pair)
     fps = {}
     for k in ids:
-        fps[k] = cgr_to_morgan_fp(sb_cgrs_dict[k], max_radius=4, length=4096)
+        fps[k] = cgr_to_morgan_fp(cgrs_dict[k], max_radius=radius, length=length)
 
     # 2) Pairwise similarity (upper triangle) -> symmetric matrix
     n = len(ids)

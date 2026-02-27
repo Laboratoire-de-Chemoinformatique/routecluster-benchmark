@@ -5,6 +5,13 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
+import plotly.graph_objects as go
+import ipywidgets as widgets
+from IPython.display import display, SVG
+from synplan.chem.reaction_routes.visualisation import cgr_display
+
+from cgr_clustering.comparing import contingency_nodes
+
 def plot_distribution(group_sizes, clusters=None, method='LSTM'):
     if len(group_sizes) > 10:
 
@@ -252,7 +259,6 @@ def plot_tanimoto_similarity_distributions(
     bins=220,
     smooth_sigma_bins=2.0,
     xlim=(0, 1),
-    title="Distribution of Tanimoto Distances",
 ):
     """
     Plot KDE-like distributions of Tanimoto similarities from two matrices using pyplot.
@@ -278,8 +284,15 @@ def plot_tanimoto_similarity_distributions(
     line2, = plt.plot(x2, y2, label=labels[1])
     plt.fill_between(x2, 0, y2, alpha=0.25, color=line2.get_color())
 
-    plt.title(title)
-    plt.xlabel("Tanimoto Distance")
+    
+    if input_is_distance:
+        plt.xlabel("Distance")
+        title="Distribution of Tanimoto Distances"
+        plt.title(title)
+    else:
+        plt.xlabel("Similarity")
+        title = "Distribution of Similarities"
+        plt.title(title)
     plt.ylabel("Density")
     plt.xlim(*xlim)
     plt.legend(title="Matrix")
@@ -328,3 +341,164 @@ def plot_distance_matrix_correlation(D1, D2, method_1="Method 1", method_2="Meth
     plt.show()
 
     return {"pearson_r": pearson, "spearman_rho": spearman, "n_pairs": int(len(x))}
+
+
+def plotly_dm_correlation(
+    D1,
+    D2,
+    name1="Matrix 1",
+    name2="Matrix 2",
+    labels=None,          # optional: list/array of node ids (len = n)
+    use_upper_triangle=True
+):
+    """
+    Interactive Plotly scatter of distances (D1 vs D2).
+    Click a dot to print the (row=i, col=j) indices from the distance matrix.
+    Also supports box/lasso selection (shows first 20 selected pairs).
+
+    Works best in Jupyter (FigureWidget + ipywidgets).
+    """
+
+    D1 = np.asarray(D1, dtype=float)
+    D2 = np.asarray(D2, dtype=float)
+
+    assert D1.ndim == 2 and D1.shape[0] == D1.shape[1], "D1 must be square"
+    assert D2.shape == D1.shape, "D2 must have the same shape as D1"
+
+    n = D1.shape[0]
+
+    # Use upper triangle to avoid duplicate pairs (i,j) and (j,i)
+    if use_upper_triangle:
+        I, J = np.triu_indices(n, k=1)
+        x = D1[I, J]
+        y = D2[I, J]
+    else:
+        I, J = np.indices((n, n))
+        I, J = I.ravel(), J.ravel()
+        x, y = D1.ravel(), D2.ravel()
+
+    # Drop non-finite pairs
+    m = np.isfinite(x) & np.isfinite(y)
+    I, J, x, y = I[m], J[m], x[m], y[m]
+
+    # customdata stores the matrix indices (and optional labels)
+    if labels is not None:
+        labels = np.asarray(labels)
+        assert len(labels) == n, "labels must have length n"
+        Li = labels[I]
+        Lj = labels[J]
+        customdata = np.array(list(zip(I, J, Li, Lj)), dtype=object)
+        hovertemplate = (
+            f"{name1}: %{{x:.6f}}<br>"
+            f"{name2}: %{{y:.6f}}<br>"
+            "i=%{customdata[0]}, j=%{customdata[1]}<br>"
+            "label_i=%{customdata[2]}<br>"
+            "label_j=%{customdata[3]}<extra></extra>"
+        )
+    else:
+        customdata = np.stack([I, J], axis=1)
+        hovertemplate = (
+            f"{name1}: %{{x:.6f}}<br>"
+            f"{name2}: %{{y:.6f}}<br>"
+            "i=%{customdata[0]}, j=%{customdata[1]}<extra></extra>"
+        )
+
+    fig = go.FigureWidget(
+        data=[
+            go.Scattergl(
+                x=x,
+                y=y,
+                mode="markers",
+                marker=dict(size=5, opacity=0.35),
+                customdata=customdata,
+                hovertemplate=hovertemplate,
+            )
+        ],
+        layout=go.Layout(
+            title=f"Distance matrices correlation: {name1} vs {name2}",
+            xaxis_title=name1,
+            yaxis_title=name2,
+            dragmode="select",  # enables box/lasso selection
+        ),
+    )
+    # Diagonal y = x line (reference)
+    minv = float(np.nanmin(np.concatenate([x, y])))
+    maxv = float(np.nanmax(np.concatenate([x, y])))
+
+    m = np.isfinite(x) & np.isfinite(y)
+    I, J, x, y = I[m], J[m], x[m], y[m]
+
+    below = int(np.sum(y < x))
+    above = int(np.sum(y > x))
+    equal = int(np.sum(np.isclose(y, x)))  # optional
+    total = len(x)
+
+    print(f"Total dots: {total}")
+    print(f"Below diagonal (y<x): {below} ({below/total:.2%})")
+    print(f"Above diagonal (y>x): {above} ({above/total:.2%})")
+    print(f"On diagonal (y≈x):    {equal} ({equal/total:.2%})")
+
+    fig.add_shape(
+        type="line",
+        x0=minv, y0=minv,
+        x1=maxv, y1=maxv,
+        xref="x", yref="y",
+        line=dict(width=2, dash="dash"),
+        layer="below",  # keep it behind the points
+    )
+
+    # Output widgets
+    out = widgets.Output(layout={"border": "1px solid #ddd", "padding": "6px"})
+    sel = widgets.HTML()
+
+    def on_click(trace, points, state):
+        if not points.point_inds:
+            return
+        k = points.point_inds[0]
+
+        cd = customdata[k]
+        i, j = int(cd[0]), int(cd[1])
+
+        with out:
+            out.clear_output()
+            if labels is not None:
+                print(
+                    f"Clicked: (i={i}, j={j}) | "
+                    f"label_i={cd[2]} label_j={cd[3]} | "
+                    f"{name1}={x[k]:.6f} {name2}={y[k]:.6f}"
+                )
+            else:
+                print(
+                    f"Clicked: (i={i}, j={j}) | {name1}={x[k]:.6f} {name2}={y[k]:.6f}"
+                )
+
+    def on_select(trace, points, selector):
+        inds = points.point_inds
+        if not inds:
+            sel.value = ""
+            return
+        preview = inds[:20]
+        pairs = [(int(customdata[k][0]), int(customdata[k][1])) for k in preview]
+        more = "" if len(inds) <= 20 else f" … (+{len(inds)-20} more)"
+        sel.value = f"<b>Selected {len(inds)} points</b>: {pairs}{more}"
+
+    fig.data[0].on_click(on_click)
+    fig.data[0].on_selection(on_select)
+    fig.update_layout(width=800, height=800)
+
+    ui = widgets.VBox([fig, sel, out])
+    display(ui)
+
+    return fig, ui
+
+def show_routes_in_cell(sbp_clusters, clusters_other, sb_cgr_ind, other_ind, images, first_n=10):
+    sb_cgr = sbp_clusters[sb_cgr_ind]['sb_cgr']
+    sb_cgr.clean2d()
+    display(SVG(cgr_display(sb_cgr)))
+    routes_list = contingency_nodes(sbp_clusters, clusters_other, sb_cgr_ind, other_ind) 
+    print('Number of routes in cell', len(routes_list))
+    print('Routes ids in AiZynthFinder list', routes_list)
+    for route in routes_list[:first_n]:
+        print('ID:',route)
+        # display(route_collections[route].make_images()[0])
+        display(images[route])

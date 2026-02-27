@@ -1,6 +1,6 @@
 import collections
 from tqdm import tqdm
-from . import cgr
+from . import cgr_process
 
 def extract_clusters(data):
     clusters = {}
@@ -40,7 +40,7 @@ def process_all_routes(routes):
     for i, route in tqdm(enumerate(routes)):
         nodes = route['nodes']
         pathway = extract_pathway(nodes)
-        cgr_pathway = cgr.route_smi_2_cgr(pathway, reverse=False)
-        route_cgr = cgr.process_single_route(cgr_pathway)
+        cgr_pathway = cgr_process.route_smi_2_cgr(pathway, reverse=False)
+        route_cgr = cgr_process.process_single_route(cgr_pathway)
         route_cgrs_dict[i] = route_cgr
     return route_cgrs_dict
