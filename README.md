@@ -98,6 +98,21 @@ source .venv-ted/bin/activate
 
 Why multiple envs: AB and TED use different AiZynthFinder versions (`pyproject.toml` extras `ab` and `ted`).
 
+### Benchmark tool versions
+
+The benchmark results in this repository were generated with:
+
+| Workflow | Tool version |
+|---|---|
+| SB-CGR clustering | SynPlanner `1.5.0` |
+| AiZynthFinder TED | AiZynthFinder `4.3.2` |
+| AiZynthFinder AB | AiZynthFinder `4.4.1` |
+| ASKCOS Tree-LSTM | ASKCOSv2 web service; exact deployed revision not exposed by the downloaded route JSON or recorded in the notebook logs |
+
+The ASKCOS routes were downloaded through the web workflow described in
+`notebooks/benchmark/askcos_cluster_lstm.ipynb`. The stock preparation notebook
+references the ASKCOSv2 `retro/template_relevance` source.
+
 ---
 
 ## Run workflow A: benchmark
