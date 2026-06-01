@@ -17,9 +17,8 @@ dependencies = [
   "jupyter",
   "ipykernel",
   "rdkit",
-  "CGRtools",
-  "chython",
-  "synplanner==1.3.2",
+  "chython-synplan",
+  "synplanner==1.5.0",
   "matplotlib-venn==1.1.2",
 ]
 
@@ -28,7 +27,7 @@ Homepage = "https://github.com/Laboratoire-de-Chemoinformatique/routecluster-ben
 Issues = "https://github.com/Laboratoire-de-Chemoinformatique/routecluster-benchmark/issues"
 
 [project.optional-dependencies]
-ab = ["aizynthfinder==4.4.0"]
+ab = ["aizynthfinder==4.4.1"]
 ted = ["aizynthfinder==4.3.2"]
 
 [dependency-groups]

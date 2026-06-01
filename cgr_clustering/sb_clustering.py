@@ -1,12 +1,37 @@
 from typing import Dict, Tuple, Any
 import copy
 
-from CGRtools.containers import ReactionContainer
-from CGRtools.containers.bonds import DynamicBond
-from CGRtools import smiles as smiles_cgrtools
-from CGRtools.algorithms.depict import *
-from CGRtools.periodictable import DynamicN
+from chython import smiles
+from chython.containers import CGRContainer, ReactionContainer
+from chython.containers.bonds import DynamicBond
+from chython.periodictable import DynamicN
 from synplan.chem.reaction_routes.clustering import extract_strat_bonds
+from synplan.chem.reaction_routes.route_cgr import compose_sb_cgr as _compose_sb_cgr
+
+
+def _sync_dynamic_atom_state(cgr):
+    # SynPlan updates CGR dictionaries during reduction. Chython's copied
+    # DynamicElement objects must be updated as well or stale charges remain in SMILES.
+    for atom_num, atom in cgr._atoms.items():
+        atom._charge = cgr._charges[atom_num]
+        atom._p_charge = cgr._p_charges[atom_num]
+        atom._is_radical = cgr._radicals[atom_num]
+        atom._p_is_radical = cgr._p_radicals[atom_num]
+    cgr.flush_cache()
+    return cgr
+
+
+def compose_sb_cgr(route_cgr):
+    """Reduce a RouteCGR and reconcile Chython dynamic-atom state."""
+    return _sync_dynamic_atom_state(_compose_sb_cgr(route_cgr))
+
+
+def compose_all_sb_cgrs(route_cgrs_dict):
+    """Reduce every RouteCGR with Chython dynamic-atom reconciliation."""
+    return {
+        route_id: compose_sb_cgr(route_cgr)
+        for route_id, route_cgr in route_cgrs_dict.items()
+    }
 
 def merge_groups(data, key1, key2):
     """
@@ -81,7 +106,7 @@ def remap_final_cgrs(sbp_groups, t_smiles):
         rr = sb_cgr.decompose()
         r_react = rr[0]
         r_prod = rr[1]
-        cgr_mol = smiles_cgrtools(t_smiles)
+        cgr_mol = smiles(t_smiles)
         if str(r_prod) == str(cgr_mol):
             mapping = r_prod.get_mapping(cgr_mol)
             nn = next(mapping)
@@ -94,9 +119,21 @@ def remap_final_cgrs(sbp_groups, t_smiles):
             new_sbp_groups[i] = group
     return new_sbp_groups
 
+def _aromatic_amine_pattern():
+    pattern = CGRContainer()
+    carbon_1 = pattern.add_atom('C')
+    carbon_main = pattern.add_atom('C')
+    carbon_2 = pattern.add_atom('C')
+    nitrogen = pattern.add_atom('N')
+    pattern.add_bond(carbon_1, carbon_main, DynamicBond(None, 4))
+    pattern.add_bond(carbon_main, carbon_2, DynamicBond(None, 4))
+    pattern.add_bond(carbon_main, nitrogen, DynamicBond(1, 1))
+    return pattern
+
+
 def map_error_fix(sbp_groups, verbose=False):
     # To do: other way to identify mapping errors? This one works only for apatinib
-    arom_amine = smiles_cgrtools('c[.>:]c([.>:]c)N')
+    arom_amine = _aromatic_amine_pattern()
     error_clusters = []
     clean_sbp_groups = {}
     for i, group in sbp_groups.items():
@@ -104,10 +141,10 @@ def map_error_fix(sbp_groups, verbose=False):
         sb_cgr = group['sb_cgr']
         if sb_cgr > arom_amine:
             cgr_query = sb_cgr.substructure(sb_cgr._atoms)
-            n = list(cgr_query.get_mcs_mapping(arom_amine))[0]
+            n = next(arom_amine.get_mapping(cgr_query))
             error_clusters.append(i)
             cgr = sb_cgr
-            fff = list(n.keys())
+            fff = list(n.values())
             for atom_num in fff:
                 if isinstance(cgr_query._atoms[atom_num], DynamicN):
                     num_n = atom_num

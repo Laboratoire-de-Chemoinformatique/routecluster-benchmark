@@ -1,10 +1,6 @@
-from chython import smiles as smiles_chython
-from chython.containers import ReactionContainer as ReactionContainerChython
-
-from CGRtools import smiles as smiles_cgrtools
-from CGRtools.containers import ReactionContainer, CGRContainer
-from CGRtools.containers.bonds import DynamicBond
-from CGRtools.algorithms.depict import *
+from chython import smiles
+from chython.containers import ReactionContainer
+from chython.containers.bonds import DynamicBond
 
 
 
@@ -14,17 +10,16 @@ def route_smi_2_cgr(pathway, reverse=False): # True for AiZynthFInder, False for
     inversed_pathway = pathway[::-1] if reverse else pathway
     for reaction_str in inversed_pathway:
         reactants = []
-        product = smiles_chython(reaction_str[1])
+        product = smiles(reaction_str[1])
         for reactant_smiles in reaction_str[0]:
-            reactant = smiles_chython(reactant_smiles)
+            reactant = smiles(reactant_smiles)
             reactant.kekule()
             reactant.implicify_hydrogens()
             reactant.thiele()
             reactants.append(reactant)
-        reaction = ReactionContainerChython(reactants=reactants, products = [product])
+        reaction = ReactionContainer(reactants=reactants, products = [product])
         reaction.reset_mapping(keep_reactants_numbering=False)
-        reaction_cgrtools = smiles_cgrtools(format(reaction, "m"))
-        cgr_pathway.append(reaction_cgrtools)
+        cgr_pathway.append(reaction)
     return cgr_pathway
 
 def find_remap(lst):

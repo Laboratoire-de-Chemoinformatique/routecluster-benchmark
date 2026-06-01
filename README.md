@@ -98,6 +98,21 @@ source .venv-ted/bin/activate
 
 Why multiple envs: AB and TED use different AiZynthFinder versions (`pyproject.toml` extras `ab` and `ted`).
 
+### Benchmark tool versions
+
+The benchmark results in this repository were generated with:
+
+| Workflow | Tool version |
+|---|---|
+| SB-CGR clustering | SynPlanner `1.5.0` |
+| AiZynthFinder TED | AiZynthFinder `4.3.2` |
+| AiZynthFinder AB | AiZynthFinder `4.4.1` |
+| ASKCOS Tree-LSTM | ASKCOSv2 web service; exact deployed revision not exposed by the downloaded route JSON or recorded in the notebook logs |
+
+The ASKCOS routes were downloaded through the web workflow described in
+`notebooks/benchmark/askcos_cluster_lstm.ipynb`. The stock preparation notebook
+references the ASKCOSv2 `retro/template_relevance` source.
+
 ---
 
 ## Run workflow A: benchmark
@@ -132,6 +147,36 @@ jupyter notebook notebooks/benchmark/inter_comparison.ipynb
 ```
 
 Expected benchmark outputs are stored in `inter_comp_data/` as method-level cluster assignments and comparison artifacts.
+
+### Reproducible route-count timing experiment
+
+The notebook search tree lives only in memory. Export the same solved-route set before
+running the command-line checks:
+
+```bash
+source .venv-ab/bin/activate
+python scripts/export_aizynth_routes.py \
+  --config config.yml \
+  --output benchmark_results/aizynth_routes.json
+
+python scripts/check_trans_error_clusters.py \
+  benchmark_results/aizynth_routes.json \
+  --expect-clusters 17 \
+  --compare-disabled
+
+python scripts/benchmark_route_scaling.py \
+  benchmark_results/aizynth_routes.json \
+  --repeats 3 \
+  --methods sb-cgr ab ted \
+  --output-dir benchmark_results/route_scaling
+```
+
+The scaling script writes raw measurements, median summaries, log-log scaling fits,
+and a wall-clock plot. SB-CGR extraction, reduction, clustering, and total time are
+reported separately; AB and TED are measured as complete distance-matrix
+computations. By default, the largest timing sample is the full exported route set.
+The saved benchmark notebook contains 230 unique routes; current AiZynthFinder
+versions can deduplicate the same 712 solved leaves to 229 routes.
 
 ---
 

@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from chython.containers import ReactionContainer as ReactionContainerChython
-from synplan.chem.utils import cgrtools_to_chython_molecule
+from chython.containers import ReactionContainer
 
 from collections import defaultdict
 from itertools import combinations
@@ -116,14 +115,12 @@ def diff_score_sb_cgr(cgr_1, cgr_2):
     # display(sb_cgr_1)
     # display(sb_cgr_2)
 
-    mol_1_prod = cgrtools_to_chython_molecule(cgr_1.decompose()[1])
-    mol_1_react = cgrtools_to_chython_molecule(cgr_1.decompose()[0])
-    chython_reaction_1 = ReactionContainerChython([mol_1_react], [mol_1_prod])
+    mol_1_react, mol_1_prod = cgr_1.decompose()
+    chython_reaction_1 = ReactionContainer([mol_1_react], [mol_1_prod])
     cgr_chython_1 = chython_reaction_1.compose()
     
-    mol_2_prod = cgrtools_to_chython_molecule(cgr_2.decompose()[1])
-    mol_2_react = cgrtools_to_chython_molecule(cgr_2.decompose()[0])
-    chython_reaction_2 = ReactionContainerChython([mol_2_react], [mol_2_prod])
+    mol_2_react, mol_2_prod = cgr_2.decompose()
+    chython_reaction_2 = ReactionContainer([mol_2_react], [mol_2_prod])
     cgr_chython_2 = chython_reaction_2.compose()
 
     # sb_cgr_fp_1 = cgr_chython_1.linear_fingerprint(max_radius=2, length=4096)
@@ -148,11 +145,8 @@ def tanimoto_sim(a, b) -> float:
 def cgr_to_morgan_fp(cgr, max_radius=2, length=4096) -> np.ndarray:
     # decompose() -> (reactants, products)
     react_cgr, prod_cgr = cgr.decompose()
-    centers = cgr.center_atoms
-    mol_react = cgrtools_to_chython_molecule(react_cgr)
-    mol_prod  = cgrtools_to_chython_molecule(prod_cgr)
 
-    rxn = ReactionContainerChython([mol_react], [mol_prod])
+    rxn = ReactionContainer([react_cgr], [prod_cgr])
     cgr_chy = rxn.compose()
 
     fp = cgr_chy.morgan_fingerprint(max_radius=max_radius, length=length)

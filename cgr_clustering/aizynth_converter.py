@@ -84,9 +84,12 @@ def extract_one_route_cgr(data, check_trans_error=True):
     return route_cgr
 
 
-def extract_all_route_cgrs(route_collection, check_trans_error=True):
+def extract_all_route_cgrs(route_collection, check_trans_error=True, show_progress=True):
     route_cgrs_dict = {}
-    for i, data in tqdm(enumerate(route_collection)):
+    iterator = enumerate(route_collection)
+    if show_progress:
+        iterator = tqdm(iterator, total=len(route_collection))
+    for i, data in iterator:
         route_cgr = extract_one_route_cgr(data, check_trans_error=check_trans_error)
         route_cgrs_dict[i] = route_cgr
     return route_cgrs_dict
