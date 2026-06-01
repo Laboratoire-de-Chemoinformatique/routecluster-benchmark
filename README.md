@@ -133,6 +133,36 @@ jupyter notebook notebooks/benchmark/inter_comparison.ipynb
 
 Expected benchmark outputs are stored in `inter_comp_data/` as method-level cluster assignments and comparison artifacts.
 
+### Reproducible route-count timing experiment
+
+The notebook search tree lives only in memory. Export the same solved-route set before
+running the command-line checks:
+
+```bash
+source .venv-ab/bin/activate
+python scripts/export_aizynth_routes.py \
+  --config config.yml \
+  --output benchmark_results/aizynth_routes.json
+
+python scripts/check_trans_error_clusters.py \
+  benchmark_results/aizynth_routes.json \
+  --expect-clusters 17 \
+  --compare-disabled
+
+python scripts/benchmark_route_scaling.py \
+  benchmark_results/aizynth_routes.json \
+  --repeats 3 \
+  --methods sb-cgr ab ted \
+  --output-dir benchmark_results/route_scaling
+```
+
+The scaling script writes raw measurements, median summaries, log-log scaling fits,
+and a wall-clock plot. SB-CGR extraction, reduction, clustering, and total time are
+reported separately; AB and TED are measured as complete distance-matrix
+computations. By default, the largest timing sample is the full exported route set.
+The saved benchmark notebook contains 230 unique routes; current AiZynthFinder
+versions can deduplicate the same 712 solved leaves to 229 routes.
+
 ---
 
 ## Run workflow B: cross-target route comparison
