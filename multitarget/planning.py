@@ -2,12 +2,10 @@ from synplan.chem.utils import mol_from_smiles
 from synplan.chem.reaction_routes.route_cgr import *
 from synplan.chem.reaction_routes.clustering import *
 from synplan.chem.reaction_routes.visualisation import cgr_display
+from cgr_clustering.sb_clustering import compose_all_sb_cgrs
 from IPython.display import display, HTML, SVG
+from synplan.utils.loading import load_reaction_rules
 from synplan.utils.visualisation import get_route_svg, get_route_svg_from_json, render_svg
-from CGRtools.reactor.reactor import Reactor
-from typing import List
-from CGRtools.containers import ReactionContainer
-import pickle
 
 def multi_target_route_generation(target_smiles, tree_config,
                                   reaction_rules,
@@ -58,31 +56,3 @@ def multi_target_route_generation(target_smiles, tree_config,
             'all_sb_cgrs': all_sb_cgrs,
         }
     return data
-
-def load_reaction_rules(file: str) -> List[Reactor]:
-    """Loads the reaction rules from a pickle file and converts them into a list of
-    Reactor objects if necessary.
-
-    :param file: The path to the pickle file that stores the reaction rules.
-    :return: A list of reaction rules as Reactor objects.
-    """
-
-    with open(file, "rb") as f:
-        reaction_rules = pickle.load(f)
-
-    reaction_rules_out = []
-    for x, ids in reaction_rules:
-        react = x.reactants
-        prods = x.products
-        if len (prods) == 1:
-            prod = prods[0]
-            if len(prod.split()) > 1:
-                n = ReactionContainer(react, prod.split())
-                #print("Multiple products detected in rule; using ReactionContainer.")
-            else:
-                n = ReactionContainer(react, [prod])
-        else:
-            n = ReactionContainer(react, prods)
-        reaction_rules_out.append(Reactor(n))
-
-    return tuple(reaction_rules_out)
